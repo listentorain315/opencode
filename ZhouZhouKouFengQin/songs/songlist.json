@@ -1,0 +1,16 @@
+{
+  "songs": [
+    {
+      "id": "00000001",
+      "name": "小星星",
+      "artist": "莫扎特",
+      "fileName": "example_twinkle_star.json"
+    },
+    {
+      "id": "00000002",
+      "name": "雨爱",
+      "artist": "杨丞琳 · 桃李醉春风谱",
+      "fileName": "rainie_love_yuai.json"
+    }
+  ]
+}

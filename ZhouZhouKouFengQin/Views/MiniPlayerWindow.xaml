@@ -1,0 +1,93 @@
+<Window x:Class="GameMusicPlayer.Views.MiniPlayerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        Title="洲洲口风琴家 · 小助手"
+        Icon="/icon.ico"
+        FontFamily="Segoe UI, Microsoft YaHei UI">
+
+    <Border x:Name="Card" Margin="12" CornerRadius="16"
+            Background="#F0121A22"
+            BorderBrush="{StaticResource StrokeBrush}"
+            BorderThickness="1"
+            Padding="18,14">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="2" Opacity="0.55" Color="#000000"/>
+        </Border.Effect>
+
+        <StackPanel Width="290">
+            <!-- 标题区：可拖动 -->
+            <Grid MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="SizeAll">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock x:Name="SongText" Text="未选择歌曲" FontSize="13" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="StatusText" Text="洲洲口风琴家 · 小助手" Style="{StaticResource HintText}" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="✕" Click="CloseButton_Click"
+                        Width="26" Height="26" Cursor="Hand"
+                        Background="Transparent" Foreground="{StaticResource SubTextBrush}" BorderThickness="0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="b" Background="Transparent" CornerRadius="7">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="b" Property="Background" Value="#33FF5A5F"/>
+                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- 传输按钮（标注快捷键） -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Content="⏮ F7" FontSize="12" Style="{StaticResource GhostButton}" Padding="14,9" Click="PrevButton_Click" ToolTip="上一首 (F7)"/>
+                <Button x:Name="PlayButton" Content="▶ F8" FontSize="13" Style="{StaticResource PrimaryButton}"
+                        Padding="22,10" Margin="8,0" Click="PlayButton_Click" ToolTip="播放/暂停 (F8)"/>
+                <Button Content="F9 ⏭" FontSize="12" Style="{StaticResource GhostButton}" Padding="14,9" Click="NextButton_Click" ToolTip="下一首 (F9)"/>
+            </StackPanel>
+
+            <!-- 歌单 -->
+            <TextBlock Text="歌单 · 单击选中，双击播放" Style="{StaticResource HintText}" Margin="0,12,0,6"/>
+            <ListBox x:Name="MiniSongList"
+                     Height="196"
+                     ItemContainerStyle="{StaticResource RoundedListItem}"
+                     SelectionChanged="MiniSongList_SelectionChanged"
+                     PreviewMouseLeftButtonDown="MiniSongList_PreviewMouseLeftButtonDown"
+                     MouseDoubleClick="MiniSongList_MouseDoubleClick"
+                     BorderThickness="0" Background="Transparent" Padding="0,2">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding DurationDisplay}" FontSize="11"
+                                       Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+    </Border>
+</Window>

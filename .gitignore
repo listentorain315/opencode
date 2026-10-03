@@ -7,6 +7,18 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# WPF / .NET generated
+**/bin/
+**/obj/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
 # MemoryCaptures
 /[Mm]emoryCaptures/
 
