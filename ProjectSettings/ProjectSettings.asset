@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  productName: ChineseChess
+  companyName: ChineseChessGame
+  defaultScreenWidth: 1024
+  defaultScreenHeight: 768
+  displayResolutionDialog: 1
+  defaultIsNativeResolution: 0
+  runInBackground: 1
+  colorSpace: 1
+  activeColorSpace: 1

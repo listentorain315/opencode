@@ -1,0 +1,8 @@
+# OpenCode 配置文件示例
+# 将此文件保存为 .opencode.json 在项目根目录
+
+{
+  "model": "anthropic/claude-sonnet-4-20250514",
+  "default_agent": "build",
+  "share": true
+}

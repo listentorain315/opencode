@@ -1,0 +1,73 @@
+# 中国象棋开局库
+# 格式: 局面 走法 权重
+# 注释以#开头
+
+# 初始局面
+start h2e2 100
+start b2e2 95
+start h0g2 90
+start b0c2 90
+start c0e2 85
+start g0e2 85
+start c3c4 80
+
+# 中炮开局
+h2e2 h9g7 95
+h2e2 b9c7 90
+h2e2 c9e7 85
+h2e2 h7e7 80
+
+# 飞相局
+c0e2 h9g7 90
+c0e2 b9c7 85
+c0e2 c9e7 80
+
+# 仙人指路
+c3c4 h7e7 90
+c3c4 h9g7 85
+c3c4 c6c5 80
+
+# 中炮对屏风马
+h9g7 b0c2 95
+h9g7 h0g2 90
+h9g7 c3c4 80
+
+# 屏风马对中炮
+b0c2 b9c7 90
+b0c2 h9g7 85
+
+# 顺手炮
+h2e2_h7e7 b0c2 90
+h2e2_h7e7 h0g2 85
+
+# 列手炮
+h2e2_b7e7 b0c2 90
+h2e2_b7e7 h0g2 85
+
+# 飞相对中炮
+c0e2_h7e7 h0g2 85
+c0e2_h7e7 b0c2 80
+
+# 中炮对反宫马
+h2e2_b9c7 b0c2 85
+h2e2_b9c7 h0g2 80
+
+# 起马局
+h0g2 h9g7 90
+h0g2 b9c7 85
+
+# 进兵局
+c3c4_h7e7 h0g2 85
+c3c4_h7e7 b0c2 80
+
+# 士角炮
+b2e2 h9g7 85
+b2e2 b9c7 80
+
+# 过宫炮
+h2e2_c9e7 b0c2 80
+h2e2_c9e7 h0g2 75
+
+# 边马局
+h0g2_b9c7 c3c4 75
+h0g2_b9c7 h2e2 70

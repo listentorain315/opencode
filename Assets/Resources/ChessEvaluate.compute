@@ -1,0 +1,232 @@
+// Chinese Chess GPU Evaluation Compute Shader
+// This shader evaluates board positions in parallel on the GPU
+
+#pragma kernel CSEvaluateBoard
+#pragma kernel CSEvaluatePiece
+
+struct PieceData
+{
+    int pieceType;    // 0=None, 1=King, 2=Advisor, 3=Elephant, 4=Horse, 5=Rook, 6=Cannon, 7=Pawn
+    int pieceColor;   // 0=None, 1=Red, 2=Black
+    int row;
+    int col;
+};
+
+struct EvalResult
+{
+    int score;
+    int mobility;
+    int threat;
+};
+
+StructuredBuffer<PieceData> pieces;
+RWStructuredBuffer<EvalResult> results;
+
+int aiColor;
+int opponentColor;
+int pieceCount;
+
+// Piece values
+static const int PIECE_VALUES[8] = { 0, 10000, 120, 120, 270, 600, 300, 30 };
+
+// Position bonus tables (simplified for GPU)
+static const int PAWN_BONUS_RED[10][9] = {
+    { 0, 0, 0, 2, 4, 2, 0, 0, 0 },
+    { 4, 0, 8, 16, 16, 16, 8, 0, 4 },
+    { 4, 0, 8, 14, 16, 14, 8, 0, 4 },
+    { 0, 0, 2, 10, 14, 10, 2, 0, 0 },
+    { 2, 0, 4, 6, 10, 6, 4, 0, 2 },
+    { 0, 0, 0, 2, 6, 2, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static const int PAWN_BONUS_BLACK[10][9] = {
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 2, 6, 2, 0, 0, 0 },
+    { 2, 0, 4, 6, 10, 6, 4, 0, 2 },
+    { 0, 0, 2, 10, 14, 10, 2, 0, 0 },
+    { 4, 0, 8, 14, 16, 14, 8, 0, 4 },
+    { 4, 0, 8, 16, 16, 16, 8, 0, 4 },
+    { 0, 0, 0, 2, 4, 2, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static const int ROOK_BONUS[10][9] = {
+    { 6, 8, 6, 14, 12, 14, 6, 8, 6 },
+    { 6, 8, 6, 14, 14, 14, 6, 8, 6 },
+    { 6, 8, 6, 14, 14, 14, 6, 8, 6 },
+    { 6, 10, 8, 14, 14, 14, 8, 10, 6 },
+    { 6, 10, 8, 14, 14, 14, 8, 10, 6 },
+    { 6, 10, 8, 14, 14, 14, 8, 10, 6 },
+    { 6, 10, 8, 14, 14, 14, 8, 10, 6 },
+    { 8, 12, 10, 16, 16, 16, 10, 12, 8 },
+    { 12, 14, 12, 18, 18, 18, 12, 14, 12 },
+    { 14, 16, 14, 20, 20, 20, 14, 16, 14 }
+};
+
+static const int HORSE_BONUS[10][9] = {
+    { 4, 8, 16, 12, 4, 12, 16, 8, 4 },
+    { 4, 10, 28, 16, 8, 16, 28, 10, 4 },
+    { 12, 14, 16, 20, 18, 20, 16, 14, 12 },
+    { 8, 24, 18, 24, 20, 24, 18, 24, 8 },
+    { 6, 16, 14, 18, 16, 18, 14, 16, 6 },
+    { 4, 12, 16, 14, 12, 14, 16, 12, 4 },
+    { 2, 12, 12, 18, 16, 18, 12, 12, 2 },
+    { 4, 8, 16, 16, 16, 16, 16, 8, 4 },
+    { 0, 4, 8, 8, 8, 8, 8, 4, 0 },
+    { 0, 2, 4, 4, 4, 4, 4, 2, 0 }
+};
+
+static const int CANNON_BONUS[10][9] = {
+    { 4, 4, 0, 6, 14, 6, 0, 4, 4 },
+    { 2, 2, 0, 6, 14, 6, 0, 2, 2 },
+    { 2, 2, 0, 2, 6, 2, 0, 2, 2 },
+    { 0, 0, 2, 4, 6, 4, 2, 0, 0 },
+    { 0, 0, 0, 2, 4, 2, 0, 0, 0 },
+    { 0, 0, 0, 2, 4, 2, 0, 0, 0 },
+    { 0, 0, 2, 4, 6, 4, 2, 0, 0 },
+    { 2, 2, 0, 2, 6, 2, 0, 2, 2 },
+    { 2, 2, 0, 6, 14, 6, 0, 2, 2 },
+    { 4, 4, 0, 6, 14, 6, 0, 4, 4 }
+};
+
+static const int KING_BONUS_RED[10][9] = {
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 1, 1, 1, 0, 0, 0 },
+    { 0, 0, 0, 2, 2, 2, 0, 0, 0 },
+    { 0, 0, 0, 11, 15, 11, 0, 0, 0 }
+};
+
+static const int KING_BONUS_BLACK[10][9] = {
+    { 0, 0, 0, 11, 15, 11, 0, 0, 0 },
+    { 0, 0, 0, 2, 2, 2, 0, 0, 0 },
+    { 0, 0, 0, 1, 1, 1, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+int GetPositionBonus(int pieceType, int pieceColor, int row, int col)
+{
+    int displayRow = pieceColor == 2 ? row : (9 - row);
+
+    switch (pieceType)
+    {
+        case 1: // King
+            return pieceColor == 1 ? KING_BONUS_RED[row][col] : KING_BONUS_BLACK[row][col];
+        case 2: // Advisor
+            return 0; // Simplified
+        case 3: // Elephant
+            return 0; // Simplified
+        case 4: // Horse
+            return HORSE_BONUS[displayRow][col];
+        case 5: // Rook
+            return ROOK_BONUS[displayRow][col];
+        case 6: // Cannon
+            return CANNON_BONUS[displayRow][col];
+        case 7: // Pawn
+            return pieceColor == 1 ? PAWN_BONUS_RED[row][col] : PAWN_BONUS_BLACK[row][col];
+        default:
+            return 0;
+    }
+}
+
+[numthreads(32, 1, 1)]
+void CSEvaluateBoard(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)pieceCount)
+        return;
+
+    PieceData piece = pieces[id.x];
+    EvalResult result;
+
+    result.score = 0;
+    result.mobility = 0;
+    result.threat = 0;
+
+    if (piece.pieceColor == 0)
+    {
+        results[id.x] = result;
+        return;
+    }
+
+    // Base piece value
+    int baseValue = PIECE_VALUES[piece.pieceType];
+
+    // Position bonus
+    int posBonus = GetPositionBonus(piece.pieceType, piece.pieceColor, piece.row, piece.col);
+
+    // Total value
+    int totalValue = baseValue + posBonus;
+
+    // Assign score based on color
+    if (piece.pieceColor == aiColor)
+    {
+        result.score = totalValue;
+    }
+    else
+    {
+        result.score = -totalValue;
+    }
+
+    // Center control bonus
+    if (piece.row >= 3 && piece.row <= 6 && piece.col >= 3 && piece.col <= 5)
+    {
+        if (piece.pieceColor == aiColor)
+            result.score += 10;
+        else
+            result.score -= 10;
+    }
+
+    results[id.x] = result;
+}
+
+[numthreads(8, 8, 1)]
+void CSEvaluatePiece(uint3 id : SV_DispatchThreadID)
+{
+    int row = id.x;
+    int col = id.y;
+
+    if (row >= 10 || col >= 9)
+        return;
+
+    int idx = row * 9 + col;
+    PieceData piece = pieces[idx];
+
+    EvalResult result;
+    result.score = 0;
+    result.mobility = 0;
+    result.threat = 0;
+
+    if (piece.pieceColor == 0)
+    {
+        results[idx] = result;
+        return;
+    }
+
+    // Evaluate piece
+    int baseValue = PIECE_VALUES[piece.pieceType];
+    int posBonus = GetPositionBonus(piece.pieceType, piece.pieceColor, row, col);
+
+    result.score = baseValue + posBonus;
+
+    if (piece.pieceColor != aiColor)
+        result.score = -result.score;
+
+    results[idx] = result;
+}
